@@ -1,39 +1,24 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { WebRTCRoom } from "@/components/webrtc-room"
+import WebRTCRoom from "@/components/webrtc-room"
 
-interface MeetingPageProps {
-  params: Promise<{ code: string }>
-}
-
-export default async function MeetingPage({ params }: MeetingPageProps) {
-  const { code } = await params
+export default async function MeetingPage({ params }: { params: { code: string } }) {
   const supabase = await createClient()
+  const { code } = params
 
-  // Get current user
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
-  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase.from("profiles").select("username").eq("id", data.user.id).maybeSingle() // Use maybeSingle instead of single to handle 0 rows
+  if (!user) redirect("/auth/login")
 
-  const username = profile?.username || data.user.email?.split("@")[0] || "User"
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .maybeSingle()
 
-  // Verify meeting exists
-  const { data: meeting, error: meetingError } = await supabase
-    .from("meetings")
-    .select("id, is_active")
-    .eq("meeting_code", code.toUpperCase())
-    .single()
-
-  if (meetingError || !meeting) {
-    redirect("/home")
-  }
-
-  if (!meeting.is_active) {
-    redirect("/home")
-  }
+  const username = profile?.username || user.email?.split("@")[0] || "User"
 
   return <WebRTCRoom meetingCode={code} username={username} />
 }

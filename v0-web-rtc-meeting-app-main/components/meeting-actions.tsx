@@ -45,6 +45,7 @@ export function MeetingActions() {
 
       setCreatedCode(meetingCode)
     } catch (err: unknown) {
+      console.log(err)
       setError(err instanceof Error ? err.message : "Failed to create meeting")
     } finally {
       setIsLoading(false)
